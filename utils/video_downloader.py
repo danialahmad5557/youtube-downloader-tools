@@ -10,6 +10,12 @@ import concurrent.futures
 from datetime import datetime
 import yt_dlp
 
+# Add local bin folder (where ffmpeg is downloaded on Render) to system PATH
+local_bin = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'bin')
+if os.path.exists(local_bin):
+    os.environ["PATH"] = local_bin + os.pathsep + os.environ.get("PATH", "")
+
+
 CACHE_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'cache')
 CACHE_TTL = 3600
 

@@ -6,7 +6,7 @@
  * Requires at least: 5.0
  */
 
-define('YT_THUMB_BACKEND_URL', 'https://yt-thumbnail.onrender.com');
+define('YT_THUMB_BACKEND_URL', 'https://youtube-downloader-tools-production.up.railway.app');
 
 function yt_thumb_enqueue_fa() { wp_enqueue_style('fa-6', 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css'); }
 add_action('wp_enqueue_scripts', 'yt_thumb_enqueue_fa');

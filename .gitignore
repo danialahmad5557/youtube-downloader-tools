@@ -1,0 +1,8 @@
+venv/
+__pycache__/
+*.pyc
+temp_downloads/
+.env
+*.zip
+cache/
+_test_*.py

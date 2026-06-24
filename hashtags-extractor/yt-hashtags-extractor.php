@@ -1,0 +1,79 @@
+<?php
+/**
+ * Plugin Name: YT Hashtags Extractor
+ * Description: Extract all hashtags from any YouTube video with frequency sorting.
+ * Version: 1.0
+ * Requires at least: 5.0
+ */
+
+define('YT_HASHTAGS_BACKEND_URL', 'https://yt-hashtags.onrender.com');
+
+function yt_hashtags_enqueue_fa() { wp_enqueue_style('fa-6', 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css'); }
+add_action('wp_enqueue_scripts', 'yt_hashtags_enqueue_fa');
+
+add_shortcode('yt_hashtags_extractor', 'yt_hashtags_extractor_render');
+function yt_hashtags_extractor_render() {
+ob_start(); ?>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0f0f0f;color:#fff;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.tool-container{width:100%;max-width:700px;background:#1a1a1a;border-radius:16px;padding:30px;border:1px solid #333}
+.tool-header{display:flex;align-items:center;gap:12px;margin-bottom:24px}
+.tool-header i{font-size:28px;color:#ff0000}
+.tool-header h1{font-size:22px;font-weight:700}
+.tool-header span{background:#ff0000;color:#fff;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:600}
+.input-group{display:flex;gap:10px;margin-bottom:20px}
+.input-group input{flex:1;padding:14px 16px;border-radius:10px;border:1px solid #333;background:#252525;color:#fff;font-size:14px;outline:none}
+.input-group input:focus{border-color:#ff0000}
+.input-group input::placeholder{color:#666}
+.btn{padding:14px 24px;border-radius:10px;border:none;background:#ff0000;color:#fff;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap}
+.btn:hover{background:#cc0000}.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-secondary{padding:10px 20px;border-radius:8px;border:1px solid #555;background:#333;color:#fff;cursor:pointer;font-size:13px}
+.btn-secondary:hover{background:#444}
+.loading{display:none;text-align:center;padding:40px}
+.loading i{font-size:32px;color:#ff0000;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading p{margin-top:12px;color:#888}
+.results{display:none}
+.video-meta{display:flex;gap:16px;margin-bottom:20px;padding:16px;background:#252525;border-radius:12px}
+.video-meta img{width:160px;border-radius:8px;flex-shrink:0}
+.video-meta h3{font-size:16px;margin-bottom:6px}
+.video-meta p{color:#aaa;font-size:13px}
+.stats{display:flex;gap:16px;margin-bottom:16px;padding:12px 16px;background:#252525;border-radius:10px}
+.stats span{font-size:13px;color:#aaa}
+.stats strong{color:#fff}
+.hashtag-grid{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px}
+.hashtag{background:#252525;border:1px solid #444;padding:10px 16px;border-radius:24px;font-size:14px;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:8px}
+.hashtag:hover{background:#ff0000;border-color:#ff0000;transform:scale(1.05)}
+.hashtag .count{background:#333;padding:2px 8px;border-radius:12px;font-size:11px;color:#aaa}
+.hashtag:hover .count{background:rgba(255,255,255,.2);color:#fff}
+.action-bar{display:flex;gap:10px;margin-top:12px}
+.error-msg{background:#2d1a1a;border:1px solid #ff4444;color:#ff6666;padding:12px;border-radius:8px;margin-bottom:16px;font-size:14px;display:none}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:12px 24px;border-radius:8px;font-size:14px;display:none;z-index:999}
+</style>
+<div class="tool-container">
+<div class="tool-header"><i class="fa-solid fa-hashtag"></i><h1>Hashtags Extractor</h1><span>Tool</span></div>
+<div class="input-group"><input type="text" id="url-input" placeholder="Paste YouTube link..." /><button class="btn" id="fetch-btn"><i class="fa-solid fa-hashtag"></i> Extract</button></div>
+<div class="error-msg" id="error-msg"></div>
+<div class="loading" id="loading"><i class="fa-solid fa-spinner"></i><p>Extracting hashtags...<br><span style="font-size:12px;color:#666;">This may take 10-30 seconds</span></p></div>
+<div class="results" id="results">
+<div class="video-meta"><img id="thumb-img" src="" alt="Video thumbnail"><div><h3 id="video-title">-</h3><p><i class="fa-brands fa-youtube" style="color:#ff0000;"></i> <span id="channel-name">-</span></p><p style="margin-top:4px;"><i class="fa-regular fa-clock" style="color:#ff0000;"></i> <span id="duration">-</span></p></div></div>
+<div class="stats"><span>Total Hashtags: <strong id="total-count">0</strong></span></div>
+<div class="hashtag-grid" id="hashtag-grid"></div>
+<div class="action-bar"><button class="btn" id="copy-all-btn" style="flex:1"><i class="fa-solid fa-copy"></i> Copy All Hashtags</button></div>
+</div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+const BACKEND='<?php echo YT_HASHTAGS_BACKEND_URL; ?>';
+let currentHashtags=[];
+function showToast(msg,type){const t=document.getElementById('toast');t.textContent=msg;t.style.background=type==='error'?'#cc0000':'#333';t.style.display='block';setTimeout(()=>t.style.display='none',3000)}
+document.getElementById('fetch-btn').addEventListener('click',extractHashtags);
+document.getElementById('url-input').addEventListener('keydown',e=>{if(e.key==='Enter')extractHashtags()});
+async function extractHashtags(){const url=document.getElementById('url-input').value.trim();if(!url)return showToast('Enter a YouTube link','error');document.getElementById('loading').style.display='block';document.getElementById('results').style.display='none';document.getElementById('error-msg').style.display='none';try{const res=await fetch(BACKEND+'/api/hashtags',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url})});const data=await res.json();document.getElementById('loading').style.display='none';if(!data.success){document.getElementById('error-msg').textContent=data.error||'Failed';document.getElementById('error-msg').style.display='block';return}renderHashtags(data)}catch(e){document.getElementById('loading').style.display='none';document.getElementById('error-msg').textContent='Network error';document.getElementById('error-msg').style.display='block'}}
+function formatDuration(seconds){if(!seconds)return'00:00';const m=Math.floor(seconds/60);const s=seconds%60;return m+':'+String(s).padStart(2,'0')}
+function renderHashtags(data){document.getElementById('thumb-img').src=data.thumbnail||'https://img.youtube.com/vi/'+data.video_id+'/hqdefault.jpg';document.getElementById('video-title').textContent=data.title;document.getElementById('channel-name').textContent=data.channel_name;document.getElementById('duration').textContent=formatDuration(data.duration);document.getElementById('total-count').textContent=data.total_hashtags;currentHashtags=data.hashtags.map(h=>h.tag);const grid=document.getElementById('hashtag-grid');grid.innerHTML='';data.hashtags.forEach(h=>{const div=document.createElement('div');div.className='hashtag';div.innerHTML=h.tag+' <span class="count">'+h.count+'</span>';div.title='Click to copy '+h.tag;div.onclick=()=>{navigator.clipboard.writeText(h.tag);showToast('Copied '+h.tag)};grid.appendChild(div)});document.getElementById('results').style.display='block'}
+document.getElementById('copy-all-btn').addEventListener('click',()=>{if(currentHashtags.length===0)return;navigator.clipboard.writeText(currentHashtags.join(' '));showToast('All '+currentHashtags.length+' hashtags copied!')});
+</script>
+<?php return ob_get_clean();
+}

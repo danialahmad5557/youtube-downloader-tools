@@ -228,11 +228,23 @@ def start_download_task(url, format_selector, ext, temp_dir, title='video'):
             total = d.get('total_bytes') or d.get('total_bytes_estimate', 0)
             downloaded = d.get('downloaded_bytes', 0)
             speed = d.get('speed', 0)
+            
+            # Check format details to identify video/audio phase
+            info = d.get('info_dict', {})
+            vcodec = info.get('vcodec', 'none')
+            acodec = info.get('acodec', 'none')
+            
+            phase = "Downloading"
+            if vcodec != 'none' and acodec == 'none':
+                phase = "Downloading Video"
+            elif vcodec == 'none' and acodec != 'none':
+                phase = "Downloading Audio"
+                
             if total > 0:
                 pct = int(downloaded * 100 / total)
                 speed_str = f"{speed / 1024 / 1024:.1f} MB/s" if speed else ""
                 task['progress'] = min(pct, 99)
-                task['progress_text'] = f"{downloaded/1024/1024:.1f} / {total/1024/1024:.1f} MB ({pct}%)"
+                task['progress_text'] = f"{phase}: {downloaded/1024/1024:.1f} / {total/1024/1024:.1f} MB ({pct}%)"
                 if speed_str:
                     task['progress_text'] += f" @ {speed_str}"
         elif d['status'] == 'finished':

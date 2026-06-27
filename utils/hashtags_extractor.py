@@ -55,7 +55,7 @@ def get_video_hashtags(url):
         'socket_timeout': 15,
         'extractor_args': {
             'youtube': {
-                'clients': ['android', 'ios']
+                'player_client': ['web_safari', 'android', 'ios']
             }
         }
     }

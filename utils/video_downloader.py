@@ -133,7 +133,7 @@ def try_ytdlp_flat(url):
             'socket_timeout': 10,
             'extractor_args': {
                 'youtube': {
-                    'clients': ['android', 'ios']
+                    'player_client': ['web_safari', 'android', 'ios']
                 }
             }
         }
@@ -268,7 +268,7 @@ def start_download_task(url, format_selector, ext, temp_dir, title='video'):
                 'progress_hooks': [progress_hook],
                 'extractor_args': {
                     'youtube': {
-                        'clients': ['android', 'ios']
+                        'player_client': ['web_safari', 'android', 'ios']
                     }
                 }
             }

@@ -247,6 +247,12 @@ def start_download_task(url, format_selector, ext, temp_dir, title='video'):
                 task['progress_text'] = f"{phase}: {downloaded/1024/1024:.1f} / {total/1024/1024:.1f} MB ({pct}%)"
                 if speed_str:
                     task['progress_text'] += f" @ {speed_str}"
+            else:
+                speed_str = f"{speed / 1024 / 1024:.1f} MB/s" if speed else ""
+                task['progress'] = 50
+                task['progress_text'] = f"{phase}: {downloaded/1024/1024:.1f} MB downloaded"
+                if speed_str:
+                    task['progress_text'] += f" @ {speed_str}"
         elif d['status'] == 'finished':
             task['progress'] = 99
             task['progress_text'] = 'Processing...'
@@ -254,7 +260,7 @@ def start_download_task(url, format_selector, ext, temp_dir, title='video'):
     def run():
         try:
             os.makedirs(temp_dir, exist_ok=True)
-            outtmpl = os.path.join(temp_dir, '%(title)s.%(ext)s')
+            outtmpl = os.path.join(temp_dir, f"{download_id}.%(ext)s")
             task['status'] = 'downloading'
 
             ydl_opts = {
@@ -280,18 +286,14 @@ def start_download_task(url, format_selector, ext, temp_dir, title='video'):
                     'preferredquality': '192',
                 }]
 
+            expected = os.path.join(temp_dir, f"{download_id}.{ext}")
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                info = ydl.extract_info(url, download=True)
-                filename = ydl.prepare_filename(info)
-                base, _ = os.path.splitext(filename)
-                expected = base + f".{ext}"
-
+                ydl.extract_info(url, download=True)
+                
                 if os.path.exists(expected):
                     task['file_path'] = expected
-                elif os.path.exists(filename):
-                    task['file_path'] = filename
                 else:
-                    prefix = base
+                    prefix = os.path.join(temp_dir, download_id)
                     found = None
                     for f in os.listdir(temp_dir):
                         full = os.path.join(temp_dir, f)

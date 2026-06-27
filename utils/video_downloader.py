@@ -176,10 +176,10 @@ def get_video_info(url):
 
     options = []
     res_data = [
-        ('1080p', '1080p Full HD', 'best[height<=1080]', 'mp4'),
-        ('720p', '720p HD', 'best[height<=720]', 'mp4'),
-        ('480p', '480p SD', 'best[height<=480]', 'mp4'),
-        ('360p', '360p Medium', 'best[height<=360]', 'mp4'),
+        ('1080p', '1080p Full HD', 'bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/best[height<=1080]/best', 'mp4'),
+        ('720p', '720p HD', 'bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/best[height<=720]/best', 'mp4'),
+        ('480p', '480p SD', 'bestvideo[height<=480][ext=mp4]+bestaudio[ext=m4a]/best[height<=480]/best', 'mp4'),
+        ('360p', '360p Medium', 'bestvideo[height<=360][ext=mp4]+bestaudio[ext=m4a]/best[height<=360]/best', 'mp4'),
         ('mp3', 'Audio Only (MP3)', 'bestaudio/best', 'mp3'),
     ]
     for key, name, selector, ext in res_data:

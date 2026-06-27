@@ -131,6 +131,11 @@ def try_ytdlp_flat(url):
             'no_warnings': True,
             'extractor_retries': 1,
             'socket_timeout': 10,
+            'extractor_args': {
+                'youtube': {
+                    'clients': ['android', 'ios']
+                }
+            }
         }
         with concurrent.futures.ThreadPoolExecutor(max_workers=1) as ex:
             f = ex.submit(lambda: yt_dlp.YoutubeDL(ydl_opts).extract_info(url, download=False))
@@ -249,6 +254,11 @@ def start_download_task(url, format_selector, ext, temp_dir, title='video'):
                 'extractor_retries': 1,
                 'socket_timeout': 30,
                 'progress_hooks': [progress_hook],
+                'extractor_args': {
+                    'youtube': {
+                        'clients': ['android', 'ios']
+                    }
+                }
             }
 
             if ext == 'mp3':

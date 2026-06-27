@@ -53,6 +53,11 @@ def get_video_hashtags(url):
         'extractor_retries': 1,
         'ignore_no_formats_error': True,
         'socket_timeout': 15,
+        'extractor_args': {
+            'youtube': {
+                'clients': ['android', 'ios']
+            }
+        }
     }
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=False)

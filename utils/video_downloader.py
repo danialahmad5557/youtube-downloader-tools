@@ -8,6 +8,8 @@ import requests
 import re
 import logging
 import glob
+import subprocess
+import sys
 import concurrent.futures
 from datetime import datetime
 import yt_dlp
@@ -41,6 +43,133 @@ SIZE_ESTIMATES = {
 
 download_tasks = {}
 download_tasks_lock = threading.Lock()
+
+# -------------------------------------------------------------
+# AUTOMATIC YT-DLP UPDATER (Requirement 4)
+# -------------------------------------------------------------
+def update_ytdlp():
+    try:
+        logger.info("Auto-updating yt-dlp to the latest version...")
+        subprocess.run([sys.executable, "-m", "pip", "install", "--upgrade", "yt-dlp"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        logger.info("yt-dlp auto-update check complete.")
+    except Exception as e:
+        logger.error(f"Failed to auto-update yt-dlp: {e}")
+
+# Run update in a background thread to prevent blocking startup
+threading.Thread(target=update_ytdlp, daemon=True).start()
+
+# -------------------------------------------------------------
+# COOKIES RESOLVER (Requirements 2 & 3)
+# -------------------------------------------------------------
+def get_cookie_options():
+    """
+    Get cookie options for yt-dlp.
+    1. Checks for manual cookies.txt in the application directory.
+    2. Checks for YOUTUBE_COOKIES environment variable.
+    3. Checks for local browser cookies (Chrome, Edge, Firefox, Brave) if running on Windows.
+    """
+    opts = {}
+    
+    # 1. Manual cookies.txt upload check (Requirement 3)
+    possible_paths = [
+        os.path.join(os.path.dirname(os.path.dirname(__file__)), 'cookies.txt'),
+        'cookies.txt'
+    ]
+    for path in possible_paths:
+        if os.path.exists(path):
+            logger.info(f"Cookie Resolver: Found manual cookies.txt at: {path}")
+            opts['cookiefile'] = path
+            return opts
+
+    # 2. Environment variable cookies fallback
+    cookies_env = os.environ.get('YOUTUBE_COOKIES')
+    if cookies_env:
+        try:
+            temp_cookies_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'temp_cookies.txt')
+            with open(temp_cookies_path, 'w', encoding='utf-8') as f:
+                f.write(cookies_env)
+            logger.info("Cookie Resolver: Loaded cookies from YOUTUBE_COOKIES environment variable.")
+            opts['cookiefile'] = temp_cookies_path
+            return opts
+        except Exception as e:
+            logger.error(f"Cookie Resolver: Failed to write environment cookies: {e}")
+
+    # 3. Local Browser Cookies extractor (Requirement 2)
+    if os.name == 'nt':  # Windows local environment
+        browsers = ['chrome', 'edge', 'firefox', 'brave']
+        for browser in browsers:
+            try:
+                # Test if browser cookies can be loaded
+                test_opts = {
+                    'cookiesfrombrowser': (browser, None, None, None),
+                    'quiet': True,
+                    'no_warnings': True,
+                    'playlist_items': '1',
+                }
+                with yt_dlp.YoutubeDL(test_opts) as ydl:
+                    pass
+                logger.info(f"Cookie Resolver: Automatically loaded cookies from browser: {browser}")
+                opts['cookiesfrombrowser'] = (browser, None, None, None)
+                return opts
+            except Exception:
+                continue
+                
+    logger.info("Cookie Resolver: No cookies found. Continuing without cookies.")
+    return opts
+
+# -------------------------------------------------------------
+# ERROR DETECTOR AND LOGGING (Requirements 1, 5, 10)
+# -------------------------------------------------------------
+def analyze_ytdlp_error(e):
+    """
+    Analyzes yt-dlp error string and classifies the failure type with friendly messages.
+    """
+    err_str = str(e)
+    logger.error(f"yt-dlp failure: {err_str}")
+    
+    # 1. YouTube anti-bot protection (Requirement 1 & 10)
+    if "confirm you're not a bot" in err_str or "confirm you are not a bot" in err_str or "bot verification" in err_str.lower():
+        return (
+            "YouTube Anti-Bot Block: YouTube has flagged this server's IP address. "
+            "Please upload a valid 'cookies.txt' to the server to bypass this block."
+        )
+    
+    # 2. Invalid or Expired cookies (Requirement 10)
+    elif "cookie" in err_str.lower() and ("expired" in err_str.lower() or "invalid" in err_str.lower() or "malformed" in err_str.lower()):
+        return (
+            "Invalid/Expired Cookies: The uploaded cookies.txt file or browser session has expired. "
+            "Please export a fresh cookies.txt from your browser and try again."
+        )
+    
+    # 3. Access Denied / Age restriction / Private (Requirement 6 & 10)
+    elif "private video" in err_str.lower() or "sign in to view this video" in err_str.lower() or "age-restricted" in err_str.lower():
+        return (
+            "Private/Age-Restricted Video: This video requires login authentication to view. "
+            "Ensure you have uploaded a valid cookies.txt file containing logged-in YouTube cookies."
+        )
+        
+    # 4. HTTP Forbidden (Requirement 10)
+    elif "403: Forbidden" in err_str or "HTTP Error 403" in err_str:
+        return (
+            "Access Denied (403): YouTube blocked the download request. "
+            "This is usually caused by expired cookies or IP rate limits. Please upload fresh cookies."
+        )
+        
+    # 5. IP Rate limiting (Requirement 10)
+    elif "429: Too Many Requests" in err_str or "HTTP Error 429" in err_str:
+        return (
+            "IP Rate Limited (429): YouTube is rate-limiting this server's IP address. "
+            "Please wait a few minutes before trying again, or use fresh cookies."
+        )
+        
+    # 6. Outdated yt-dlp version (Requirement 10)
+    elif "signature" in err_str.lower() or "n-challenge" in err_str.lower():
+        return (
+            "Signature decryption issue: YouTube has changed its player code. "
+            "The backend will attempt to auto-update yt-dlp. Please try again in a few moments."
+        )
+        
+    return f"Download failed: {err_str[:120]}"
 
 def _cache_key(url):
     return hashlib.md5(url.encode()).hexdigest()
@@ -129,7 +258,7 @@ def format_date(date_str):
 def _get_ydl_opts_base():
     """Return base yt-dlp options that work reliably on cloud servers."""
     cache_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'cache', 'yt-dlp')
-    return {
+    opts = {
         'quiet': True,
         'no_warnings': True,
         'extractor_retries': 3,
@@ -146,6 +275,9 @@ def _get_ydl_opts_base():
             }
         }
     }
+    # Merge browser or manual cookies (Requirements 2, 3 & 9)
+    opts.update(get_cookie_options())
+    return opts
 
 def try_ytdlp_flat(url):
     try:
@@ -173,8 +305,23 @@ def get_video_info(url):
         return cached
 
     meta = fetch_oembed(video_id)
+    
+    # Direct extraction fallback for age-restricted / private / bot-blocked videos (Requirement 6)
     if not meta:
-        return {'success': False, 'error': 'Could not fetch video info'}
+        logger.info(f"Oembed failed for {video_id}, falling back to direct yt-dlp metadata extraction.")
+        try:
+            ydl_opts = _get_ydl_opts_base()
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(url, download=False)
+                meta = {
+                    'title': info.get('title', 'YouTube Video'),
+                    'channel_name': info.get('uploader') or info.get('channel', 'YouTube'),
+                    'channel_url': info.get('channel_url', ''),
+                    'thumbnail': info.get('thumbnail', ''),
+                }
+        except Exception as e:
+            err_msg = analyze_ytdlp_error(e)
+            return {'success': False, 'error': err_msg}
 
     duration = None
     views = None
@@ -332,10 +479,10 @@ def start_download_task(url, format_selector, ext, temp_dir, title='video'):
             logger.info(f"Download {download_id} completed: {task['file_path']}")
             
         except Exception as e:
-            logger.error(f"Download {download_id} failed: {e}")
+            friendly_err = analyze_ytdlp_error(e)
             task['status'] = 'error'
-            task['error'] = str(e)
-            task['progress_text'] = f'Error: {str(e)[:100]}'
+            task['error'] = friendly_err
+            task['progress_text'] = f'Error: {friendly_err[:100]}'
 
     thread = threading.Thread(target=run, daemon=True)
     thread.start()

@@ -23,4 +23,4 @@ RUN mkdir -p temp_downloads cache
 EXPOSE 5000
 
 # Run the app dynamically binding to the port specified by the hosting platform (Railway/Render)
-CMD gunicorn --bind 0.0.0.0:$PORT --timeout 300 --workers 2 --threads 4 wsgi:app
+CMD gunicorn --bind 0.0.0.0:$PORT wsgi:app

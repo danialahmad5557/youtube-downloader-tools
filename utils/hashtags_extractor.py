@@ -115,6 +115,7 @@ def get_video_hashtags(url):
     views = 0
 
     try:
+        cache_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'cache', 'yt-dlp')
         ydl_opts = {
             'skip_download': True,
             'quiet': True,
@@ -123,13 +124,14 @@ def get_video_hashtags(url):
             'ignore_no_formats_error': True,
             'socket_timeout': 20,
             'remote_components': ['ejs:github'],
+            'cache_dir': cache_path,
             'http_headers': {
                 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_5) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Safari/605.1.15',
                 'Accept-Language': 'en-US,en;q=0.9',
             },
             'extractor_args': {
                 'youtube': {
-                    'player_client': ['web_safari', 'android', 'ios']
+                    'player_client': ['tv', 'web_safari', 'android', 'ios']
                 }
             }
         }

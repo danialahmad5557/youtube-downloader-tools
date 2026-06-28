@@ -56,7 +56,7 @@ function yt_hashtags_extractor_render($atts) {
     font-size: 24px;
     font-weight: 700;
     margin: 0;
-    color: #ffffff;
+    color: #ffffff !important;
     letter-spacing: -0.5px;
 }
 

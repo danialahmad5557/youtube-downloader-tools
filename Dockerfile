@@ -1,14 +1,10 @@
 FROM python:3.10-slim
 
-# Install system dependencies
-# - ffmpeg: for merging video/audio streams
-# - curl: for downloading files  
-# - nodejs + npm: for yt-dlp JavaScript signature challenge solving
+# Install system dependencies, including ffmpeg and nodejs (needed for yt-dlp to solve YouTube JS/signature challenges)
 RUN apt-get update && apt-get install -y \
     ffmpeg \
     curl \
-    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
-    && apt-get install -y nodejs \
+    nodejs \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -26,5 +22,5 @@ RUN mkdir -p temp_downloads cache
 # Expose port (dynamic environment variable PORT)
 EXPOSE 5000
 
-# Run with gunicorn - increase timeout to 300s for large downloads
+# Run the app dynamically binding to the port specified by the hosting platform (Railway/Render)
 CMD gunicorn --bind 0.0.0.0:$PORT --timeout 300 --workers 2 --threads 4 wsgi:app

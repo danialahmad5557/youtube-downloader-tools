@@ -19,8 +19,9 @@ COPY . .
 # Create temp directories
 RUN mkdir -p temp_downloads cache
 
-# Expose port (dynamic environment variable PORT)
-EXPOSE 5000
+# Expose port (must match original port 7860 configured in Railway settings)
+ENV PORT=7860
+EXPOSE 7860
 
-# Run the app dynamically binding to the port specified by the hosting platform (Railway/Render)
-CMD gunicorn --bind 0.0.0.0:$PORT wsgi:app
+# Run the app binding to port 7860
+CMD ["gunicorn", "--bind", "0.0.0.0:7860", "wsgi:app"]

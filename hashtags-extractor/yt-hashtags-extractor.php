@@ -179,7 +179,7 @@ function yt_hashtags_extractor_render($atts) {
     font-size: 18px;
     margin: 0 0 10px 0;
     line-height: 1.4;
-    color: #ffffff;
+    color: #ffffff !important;
     font-weight: 600;
 }
 

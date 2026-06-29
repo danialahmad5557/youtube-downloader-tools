@@ -128,13 +128,10 @@ def get_video_hashtags(url):
             'http_headers': {
                 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_5) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Safari/605.1.15',
                 'Accept-Language': 'en-US,en;q=0.9',
-            },
-            'extractor_args': {
-                'youtube': {
-                    'player_client': ['tv', 'web_safari', 'android', 'ios']
-                }
             }
         }
+        from utils.video_downloader import get_cookie_options
+        ydl_opts.update(get_cookie_options())
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
 

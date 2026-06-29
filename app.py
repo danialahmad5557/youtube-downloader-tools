@@ -26,6 +26,13 @@ def index():
     from utils.video_downloader import get_cookie_options
     cookie_opts = get_cookie_options()
     
+    node_version = "Not Found"
+    try:
+        import subprocess
+        node_version = subprocess.check_output(['node', '-v'], text=True).strip()
+    except Exception as e:
+        node_version = f"Error: {e}"
+        
     return jsonify({
         'status': 'online',
         'cookies_debug': {
@@ -33,6 +40,9 @@ def index():
             'cookies_txt_size': cookies_txt_size,
             'resolved_cookie_file': cookie_opts.get('cookiefile'),
             'resolved_cookies_from_browser': cookie_opts.get('cookiesfrombrowser') is not None
+        },
+        'node_debug': {
+            'node_version': node_version
         },
         'message': 'Combined YouTube Downloader and Tools API is running.',
         'endpoints': {

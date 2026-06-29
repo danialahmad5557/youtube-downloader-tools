@@ -20,8 +20,20 @@ logger = logging.getLogger(__name__)
 
 @app.route('/')
 def index():
+    cookies_txt_exists = os.path.exists('cookies.txt')
+    cookies_txt_size = os.path.getsize('cookies.txt') if cookies_txt_exists else 0
+    
+    from utils.video_downloader import get_cookie_options
+    cookie_opts = get_cookie_options()
+    
     return jsonify({
         'status': 'online',
+        'cookies_debug': {
+            'cookies_txt_exists': cookies_txt_exists,
+            'cookies_txt_size': cookies_txt_size,
+            'resolved_cookie_file': cookie_opts.get('cookiefile'),
+            'resolved_cookies_from_browser': cookie_opts.get('cookiesfrombrowser') is not None
+        },
         'message': 'Combined YouTube Downloader and Tools API is running.',
         'endpoints': {
             'thumbnail_fetch': '/api/fetch [POST]',

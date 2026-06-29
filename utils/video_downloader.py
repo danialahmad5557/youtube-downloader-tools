@@ -266,7 +266,7 @@ def _get_ydl_opts_base():
         'remote_components': ['ejs:github'],
         'cache_dir': cache_path,
         'http_headers': {
-            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_5) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Safari/605.1.15',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             'Accept-Language': 'en-US,en;q=0.9',
         }
     }

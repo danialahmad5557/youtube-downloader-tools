@@ -68,43 +68,6 @@ def index():
         }
     })
 
-@app.route('/api/debug/extract', methods=['POST'])
-def debug_extract():
-    data = request.get_json() or {}
-    url = data.get('url')
-    if not url:
-        return jsonify({'error': 'No URL provided'}), 400
-        
-    import io
-    from contextlib import redirect_stdout, redirect_stderr
-    import yt_dlp
-    from utils.video_downloader import _get_ydl_opts_base
-    
-    ydl_opts = _get_ydl_opts_base()
-    ydl_opts['quiet'] = False
-    ydl_opts['no_warnings'] = False
-    
-    f_stdout = io.StringIO()
-    f_stderr = io.StringIO()
-    
-    error_str = None
-    info_dict = None
-    
-    with redirect_stdout(f_stdout), redirect_stderr(f_stderr):
-        try:
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                info_dict = ydl.extract_info(url, download=False)
-        except Exception as e:
-            error_str = str(e)
-            
-    return jsonify({
-        'success': error_str is None,
-        'error': error_str,
-        'stdout': f_stdout.getvalue(),
-        'stderr': f_stderr.getvalue(),
-        'title': info_dict.get('title') if info_dict else None
-    })
-
 # ==========================================
 # THUMBNAIL DOWNLOADER ENDPOINTS
 # ==========================================

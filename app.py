@@ -33,6 +33,13 @@ def index():
     except Exception as e:
         node_version = f"Error: {e}"
         
+    deno_version = "Not Found"
+    try:
+        import subprocess
+        deno_version = subprocess.check_output(['deno', '--version'], text=True).split('\n')[0].strip()
+    except Exception as e:
+        deno_version = f"Error: {e}"
+        
     return jsonify({
         'status': 'online',
         'cookies_debug': {
@@ -43,6 +50,9 @@ def index():
         },
         'node_debug': {
             'node_version': node_version
+        },
+        'deno_debug': {
+            'deno_version': deno_version
         },
         'message': 'Combined YouTube Downloader and Tools API is running.',
         'endpoints': {

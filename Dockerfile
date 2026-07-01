@@ -1,11 +1,15 @@
 FROM python:3.10-slim
 
-# Install system dependencies, including ffmpeg and nodejs (needed for yt-dlp to solve YouTube JS/signature challenges)
+# Install system dependencies, including ffmpeg, curl, and unzip (needed for Deno installer)
 RUN apt-get update && apt-get install -y \
     ffmpeg \
     curl \
-    nodejs \
+    unzip \
     && rm -rf /var/lib/apt/lists/*
+
+# Install Deno (extremely robust JS/signature challenge solver for yt-dlp)
+RUN curl -fsSL https://deno.land/x/install/install.sh | sh
+ENV PATH="/root/.deno/bin:${PATH}"
 
 WORKDIR /app
 

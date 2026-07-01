@@ -263,6 +263,7 @@ def _get_ydl_opts_base():
         'no_warnings': True,
         'extractor_retries': 3,
         'socket_timeout': 20,
+        'noplaylist': True,
         'remote_components': ['ejs:github'],
         'cache_dir': cache_path,
         'http_headers': {
@@ -293,6 +294,7 @@ def get_video_info(url):
     video_id = extract_video_id(url)
     if not video_id:
         return {'success': False, 'error': 'Invalid YouTube URL'}
+    url = f"https://www.youtube.com/watch?v={video_id}"
 
     ckey = _cache_key(url)
     cached = _get_cached(ckey)
@@ -369,6 +371,9 @@ def get_video_info(url):
     return result
 
 def start_download_task(url, format_selector, ext, temp_dir, title='video'):
+    video_id = extract_video_id(url)
+    if video_id:
+        url = f"https://www.youtube.com/watch?v={video_id}"
     download_id = uuid.uuid4().hex[:12]
     task = {
         'id': download_id,

@@ -104,6 +104,9 @@ def get_video_hashtags(url):
         return cached
 
     video_id = _extract_video_id(url)
+    if not video_id:
+        return {'success': False, 'error': 'Invalid YouTube URL'}
+    url = f"https://www.youtube.com/watch?v={video_id}"
     
     # Try yt-dlp first for metadata
     title = 'Unknown Title'
@@ -123,6 +126,7 @@ def get_video_hashtags(url):
             'extractor_retries': 3,
             'ignore_no_formats_error': True,
             'socket_timeout': 20,
+            'noplaylist': True,
             'remote_components': ['ejs:github'],
             'cache_dir': cache_path,
             'http_headers': {
